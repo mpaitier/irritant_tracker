@@ -22,7 +22,7 @@ class Irritant {
     required this.type,
     required this.description,
     required this.priorite,
-    this.statut = 'ouvert',
+    this.statut = 'Ouvert',
     DateTime? date,
     List<String>? photosUrls,
   })  : date = date ?? DateTime.now(),
@@ -55,7 +55,7 @@ class Irritant {
       type: map['type'] ?? '',
       description: map['description'] ?? '',
       priorite: map['priorite'] ?? 'Normale',
-      statut: map['statut'] ?? 'ouvert',
+      statut: map['statut'] ?? 'Ouvert',
       date: DateTime.parse(map['date']),
       photosUrls: List<String>.from(map['photosUrls'] ?? []),
     );

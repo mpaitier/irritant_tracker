@@ -58,4 +58,17 @@ class IrritantService {
     }
     await _collection.doc(id).delete();
   }
+
+  Stream<List<Irritant>> irritantsParUtilisateur(String uid) {
+    return FirebaseFirestore.instance
+        .collection('irritants')
+        .where('uidAuteur', isEqualTo: uid)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => Irritant.fromMap(
+                  doc.id,                              // ← String en premier
+                  doc.data(),  // ← Map en second
+                ))
+            .toList());
+  }
 }
