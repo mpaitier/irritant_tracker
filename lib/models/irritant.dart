@@ -8,6 +8,7 @@ class Irritant {
   final String priorite;
   final String statut;
   final DateTime date;
+  final List<String> photosUrls; // Liste d'URLs au lieu d'une seule
 
   Irritant({
     this.id,
@@ -19,7 +20,9 @@ class Irritant {
     required this.priorite,
     this.statut = 'ouvert',
     DateTime? date,
-  }) : date = date ?? DateTime.now();
+    List<String>? photosUrls,
+  })  : date = date ?? DateTime.now(),
+        photosUrls = photosUrls ?? []; // Liste vide par défaut
 
   Map<String, dynamic> toMap() {
     return {
@@ -31,6 +34,7 @@ class Irritant {
       'priorite': priorite,
       'statut': statut,
       'date': date.toIso8601String(),
+      'photosUrls': photosUrls, // Firestore accepte les listes
     };
   }
 
@@ -45,6 +49,8 @@ class Irritant {
       priorite: map['priorite'] ?? 'Normale',
       statut: map['statut'] ?? 'ouvert',
       date: DateTime.parse(map['date']),
+      // Convertit la liste Firestore en List<String>
+      photosUrls: List<String>.from(map['photosUrls'] ?? []),
     );
   }
 }
