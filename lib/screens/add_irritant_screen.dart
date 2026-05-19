@@ -1,11 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/irritant.dart';
+import '../models/app_user.dart';
 import '../services/irritant_service.dart';
-import '../services/photo_service.dart'; // Import du service photo
+import '../services/photo_service.dart';
+import '../services/auth_service.dart';
 
 class AddIrritantScreen extends StatefulWidget {
-  const AddIrritantScreen({super.key});
+  final AppUser currentUser;
+
+  const AddIrritantScreen({super.key, required this.currentUser});
 
   @override
   State<AddIrritantScreen> createState() => _AddIrritantScreenState();
@@ -14,9 +18,8 @@ class AddIrritantScreen extends StatefulWidget {
 class _AddIrritantScreenState extends State<AddIrritantScreen> {
   final _formKey = GlobalKey<FormState>();
   final _irritantService = IrritantService();
-  final _photoService = PhotoService(); // Service photo dédié
+  final _photoService = PhotoService();
 
-  final _nomController = TextEditingController();
   final _titreController = TextEditingController();
   final _descriptionController = TextEditingController();
 
@@ -24,7 +27,7 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
   String? _lieu;
   String? _type;
   String? _priorite;
-  List<File> _photos = []; // Liste de photos au lieu d'une seule
+  List<File> _photos = [];
   bool _chargement = false;
 
   final List<String> _lieux = [
@@ -36,7 +39,6 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
   ];
   final List<String> _priorites = ['Basse', 'Normale', 'Haute'];
 
-  // Affiche le choix caméra / galerie / plusieurs photos
   void _afficherChoixPhoto() {
     showModalBottomSheet(
       context: context,
@@ -86,7 +88,6 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
       _priorite = null;
       _photos = [];
     });
-    _nomController.clear();
     _titreController.clear();
     _descriptionController.clear();
   }
@@ -96,7 +97,9 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
     setState(() => _chargement = true);
 
     final irritant = Irritant(
-      nom: _anonyme ? 'Anonyme' : _nomController.text.trim(),
+      nom: _anonyme ? 'Anonyme' : widget.currentUser.nom,
+      nomReel: widget.currentUser.nom,
+      uidAuteur: widget.currentUser.uid,
       titre: _titreController.text.trim(),
       lieu: _lieu!,
       type: _type!,
@@ -104,7 +107,6 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
       priorite: _priorite!,
     );
 
-    // Envoie l'irritant avec toutes les photos
     await _irritantService.ajouterIrritant(irritant, photos: _photos);
 
     setState(() => _chargement = false);
@@ -119,7 +121,6 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
 
   @override
   void dispose() {
-    _nomController.dispose();
     _titreController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -128,32 +129,52 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('IrritantsTracker')),
+      appBar: AppBar(
+        title: const Text('IrritantsTracker'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await AuthService().deconnecter();
+            },
+          ),
+        ],
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
 
-            // Nom / Anonyme
+            // Nom (prérempli, non modifiable) + case anonyme
             Row(
               children: [
-                Icon(_anonyme ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                Icon(
+                  _anonyme ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.grey,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: TextFormField(
-                    controller: _nomController,
-                    enabled: !_anonyme,
-                    decoration: const InputDecoration(hintText: 'Nom / Anonyme', border: OutlineInputBorder()),
-                    validator: (value) {
-                      if (!_anonyme && (value == null || value.isEmpty)) {
-                        return 'Entrez un nom ou cochez Anonyme';
-                      }
-                      return null;
-                    },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(4),
+                      color: Colors.grey.shade100,
+                    ),
+                    // Affiche "Anonyme" ou le vrai nom selon la case
+                    child: Text(
+                      _anonyme ? 'Anonyme' : widget.currentUser.nom,
+                      style: TextStyle(
+                        color: _anonyme ? Colors.grey : Colors.black87,
+                      ),
+                    ),
                   ),
                 ),
-                Checkbox(value: _anonyme, onChanged: (val) => setState(() => _anonyme = val!)),
+                Checkbox(
+                  value: _anonyme,
+                  onChanged: (val) => setState(() => _anonyme = val!),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -166,8 +187,12 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _titreController,
-                    decoration: const InputDecoration(hintText: 'Titre', border: OutlineInputBorder()),
-                    validator: (value) => value == null || value.isEmpty ? 'Titre requis' : null,
+                    decoration: const InputDecoration(
+                      hintText: 'Titre',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Titre requis' : null,
                   ),
                 ),
               ],
@@ -184,9 +209,12 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                     value: _lieu,
                     hint: const Text('Lieu'),
                     decoration: const InputDecoration(border: OutlineInputBorder()),
-                    items: _lieux.map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
+                    items: _lieux
+                        .map((l) => DropdownMenuItem(value: l, child: Text(l)))
+                        .toList(),
                     onChanged: (val) => setState(() => _lieu = val),
-                    validator: (value) => value == null ? 'Sélectionnez un lieu' : null,
+                    validator: (value) =>
+                        value == null ? 'Sélectionnez un lieu' : null,
                   ),
                 ),
               ],
@@ -203,9 +231,12 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                     value: _type,
                     hint: const Text("Type d'anomalie"),
                     decoration: const InputDecoration(border: OutlineInputBorder()),
-                    items: _types.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                    items: _types
+                        .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                        .toList(),
                     onChanged: (val) => setState(() => _type = val),
-                    validator: (value) => value == null ? 'Sélectionnez un type' : null,
+                    validator: (value) =>
+                        value == null ? 'Sélectionnez un type' : null,
                   ),
                 ),
               ],
@@ -225,8 +256,13 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                   child: TextFormField(
                     controller: _descriptionController,
                     maxLines: 4,
-                    decoration: const InputDecoration(hintText: 'Description', border: OutlineInputBorder()),
-                    validator: (value) => value == null || value.isEmpty ? 'Description requise' : null,
+                    decoration: const InputDecoration(
+                      hintText: 'Description',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Description requise'
+                        : null,
                   ),
                 ),
               ],
@@ -243,9 +279,12 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                     value: _priorite,
                     hint: const Text('Priorité'),
                     decoration: const InputDecoration(border: OutlineInputBorder()),
-                    items: _priorites.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                    items: _priorites
+                        .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                        .toList(),
                     onChanged: (val) => setState(() => _priorite = val),
-                    validator: (value) => value == null ? 'Sélectionnez une priorité' : null,
+                    validator: (value) =>
+                        value == null ? 'Sélectionnez une priorité' : null,
                   ),
                 ),
               ],
@@ -269,7 +308,7 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
               ],
             ),
 
-            // Grille d'aperçu des photos sélectionnées
+            // Grille d'aperçu des photos
             if (_photos.isNotEmpty) ...[
               const SizedBox(height: 12),
               GridView.builder(
@@ -284,7 +323,6 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                 itemBuilder: (context, index) {
                   return Stack(
                     children: [
-                      // Aperçu de la photo
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.file(
@@ -294,7 +332,6 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                           height: double.infinity,
                         ),
                       ),
-                      // Bouton supprimer la photo
                       Positioned(
                         top: 4,
                         right: 4,
@@ -305,7 +342,8 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                               color: Colors.black54,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.close, color: Colors.white, size: 18),
+                            child: const Icon(Icons.close,
+                                color: Colors.white, size: 18),
                           ),
                         ),
                       ),

@@ -1,6 +1,8 @@
 class Irritant {
   final String? id;
-  final String nom;
+  final String nom;           // "Anonyme" ou nom affiché
+  final String nomReel;       // Toujours le vrai nom (visible admin seulement)
+  final String uidAuteur;     // UID Firebase de l'auteur
   final String titre;
   final String lieu;
   final String type;
@@ -8,11 +10,13 @@ class Irritant {
   final String priorite;
   final String statut;
   final DateTime date;
-  final List<String> photosUrls; // Liste d'URLs au lieu d'une seule
+  final List<String> photosUrls;
 
   Irritant({
     this.id,
     required this.nom,
+    required this.nomReel,
+    required this.uidAuteur,
     required this.titre,
     required this.lieu,
     required this.type,
@@ -22,11 +26,13 @@ class Irritant {
     DateTime? date,
     List<String>? photosUrls,
   })  : date = date ?? DateTime.now(),
-        photosUrls = photosUrls ?? []; // Liste vide par défaut
+        photosUrls = photosUrls ?? [];
 
   Map<String, dynamic> toMap() {
     return {
       'nom': nom,
+      'nomReel': nomReel,
+      'uidAuteur': uidAuteur,
       'titre': titre,
       'lieu': lieu,
       'type': type,
@@ -34,7 +40,7 @@ class Irritant {
       'priorite': priorite,
       'statut': statut,
       'date': date.toIso8601String(),
-      'photosUrls': photosUrls, // Firestore accepte les listes
+      'photosUrls': photosUrls,
     };
   }
 
@@ -42,6 +48,8 @@ class Irritant {
     return Irritant(
       id: id,
       nom: map['nom'] ?? 'Anonyme',
+      nomReel: map['nomReel'] ?? '',
+      uidAuteur: map['uidAuteur'] ?? '',
       titre: map['titre'] ?? '',
       lieu: map['lieu'] ?? '',
       type: map['type'] ?? '',
@@ -49,7 +57,6 @@ class Irritant {
       priorite: map['priorite'] ?? 'Normale',
       statut: map['statut'] ?? 'ouvert',
       date: DateTime.parse(map['date']),
-      // Convertit la liste Firestore en List<String>
       photosUrls: List<String>.from(map['photosUrls'] ?? []),
     );
   }

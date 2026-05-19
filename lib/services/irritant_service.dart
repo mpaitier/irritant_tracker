@@ -7,21 +7,20 @@ class IrritantService {
   final CollectionReference _collection =
       FirebaseFirestore.instance.collection('irritants');
 
-  // PhotoService réutilisable
   final PhotoService _photoService = PhotoService();
 
   // Ajoute un irritant avec ses photos dans Firebase
   Future<void> ajouterIrritant(Irritant irritant, {List<File>? photos}) async {
     List<String> photosUrls = [];
 
-    // Upload toutes les photos si fournies
     if (photos != null && photos.isNotEmpty) {
       photosUrls = await _photoService.uploadPhotos(photos);
     }
 
-    // Crée l'irritant avec les URLs des photos
     final irritantAvecPhotos = Irritant(
       nom: irritant.nom,
+      nomReel: irritant.nomReel,
+      uidAuteur: irritant.uidAuteur,
       titre: irritant.titre,
       lieu: irritant.lieu,
       type: irritant.type,
@@ -54,11 +53,9 @@ class IrritantService {
 
   // Supprime un irritant et ses photos associées
   Future<void> supprimerIrritant(String id, List<String> photosUrls) async {
-    // Supprime chaque photo du Storage
     for (final url in photosUrls) {
       await _photoService.supprimerPhoto(url);
     }
-    // Supprime le document Firestore
     await _collection.doc(id).delete();
   }
 }
