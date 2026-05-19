@@ -127,19 +127,8 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('IrritantsTracker'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await AuthService().deconnecter();
-            },
-          ),
-        ],
-      ),
-      body: Form(
+    return Material(
+      child: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),

@@ -6,6 +6,7 @@ import 'screens/login_screen.dart';
 import 'screens/add_irritant_screen.dart';
 import 'services/auth_service.dart';
 import 'models/app_user.dart';
+import 'navigation/main_navigation.dart'; // ← ajoute cet import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,7 +60,7 @@ class MyApp extends StatelessWidget {
               if (appUser != null) {
                 // Pour l'instant les deux roles voient le formulaire
                 // L'admin aura son dashboard web plus tard
-                return AddIrritantScreen(currentUser: appUser);
+                return MainNavigation(currentUser: appUser);
               }
 
               // Profil introuvable → retour au login
