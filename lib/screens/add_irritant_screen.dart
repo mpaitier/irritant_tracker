@@ -26,18 +26,17 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
   bool _anonyme = false;
   String? _lieu;
   String? _type;
-  String? _priorite;
+  double _priorite = 5; // Valeur entre 0 et 10
   List<File> _photos = [];
   bool _chargement = false;
 
   final List<String> _lieux = [
-    'Salle de réunion A', 'Salle de réunion B', 'Open space',
-    'Cuisine', 'Couloir', 'Accueil', 'Autre',
+    'Petite salle de réunion', 'Grande salle de réunion', 'Zone A', 'Zone B', 'Zone C',
+    'Toilettes', 'Couloir', 'Entrée', 'Autre',
   ];
   final List<String> _types = [
     'Équipement', 'Climatisation', 'Bruit', 'Éclairage', 'Propreté', 'Autre',
   ];
-  final List<String> _priorites = ['Basse', 'Normale', 'Haute'];
 
   void _afficherChoixPhoto() {
     showModalBottomSheet(
@@ -85,7 +84,7 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
       _anonyme = false;
       _lieu = null;
       _type = null;
-      _priorite = null;
+      _priorite = 5; // Remet la valeur par défaut
       _photos = [];
     });
     _titreController.clear();
@@ -104,7 +103,7 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
       lieu: _lieu!,
       type: _type!,
       description: _descriptionController.text.trim(),
-      priorite: _priorite!,
+      priorite: _priorite.round().toString(), // Convertit le double en String
     );
 
     await _irritantService.ajouterIrritant(irritant, photos: _photos);
@@ -162,7 +161,6 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                       borderRadius: BorderRadius.circular(4),
                       color: Colors.grey.shade100,
                     ),
-                    // Affiche "Anonyme" ou le vrai nom selon la case
                     child: Text(
                       _anonyme ? 'Anonyme' : widget.currentUser.nom,
                       style: TextStyle(
@@ -269,22 +267,35 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Priorité
+            // Priorité (slider de 0 à 10)
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Icon(Icons.flag_outlined, color: Colors.grey),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _priorite,
-                    hint: const Text('Priorité'),
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
-                    items: _priorites
-                        .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                        .toList(),
-                    onChanged: (val) => setState(() => _priorite = val),
-                    validator: (value) =>
-                        value == null ? 'Sélectionnez une priorité' : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Faible', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          Text(
+                            _priorite.round().toString(),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const Text('Important', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        ],
+                      ),
+                      Slider(
+                        value: _priorite,
+                        min: 0,
+                        max: 10,
+                        divisions: 10,
+                        onChanged: (val) => setState(() => _priorite = val),
+                      ),
+                    ],
                   ),
                 ),
               ],
