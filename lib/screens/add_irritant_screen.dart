@@ -4,7 +4,6 @@ import '../models/irritant.dart';
 import '../models/app_user.dart';
 import '../services/irritant_service.dart';
 import '../services/photo_service.dart';
-import '../services/auth_service.dart';
 
 class AddIrritantScreen extends StatefulWidget {
   final AppUser currentUser;
@@ -193,7 +192,7 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _lieu,
+                    initialValue: _lieu,
                     hint: const Text('Lieu'),
                     decoration: const InputDecoration(border: OutlineInputBorder()),
                     items: _lieux
@@ -215,7 +214,7 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _type,
+                    initialValue: _type,
                     hint: const Text("Type d'anomalie"),
                     decoration: const InputDecoration(border: OutlineInputBorder()),
                     items: _types
