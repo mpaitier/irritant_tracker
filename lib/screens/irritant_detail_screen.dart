@@ -48,7 +48,6 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
     return const Color(0xFFEF5350);
   }
 
-  // Envoie un message et scroll en bas
   Future<void> _envoyerMessage() async {
     final texte = _messageController.text.trim();
     if (texte.isEmpty) return;
@@ -68,7 +67,6 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
     _messageController.clear();
     setState(() => _envoi = false);
 
-    // Scroll vers le bas après envoi
     Future.delayed(const Duration(milliseconds: 200), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -80,8 +78,8 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
     });
   }
 
-  // Ligne d'info réutilisable
-  Widget _ligneInfo(IconData icone, String label, String valeur, {Color? couleurValeur}) {
+  Widget _ligneInfo(IconData icone, String label, String valeur,
+      {Color? couleurValeur}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -92,7 +90,8 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text(label,
+                  style: const TextStyle(color: Colors.grey, fontSize: 12)),
               const SizedBox(height: 2),
               Text(
                 valeur,
@@ -109,12 +108,10 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
     );
   }
 
-  // Bulle de message
   Widget _bulleMessage(Message message) {
     final bool estEmploye = message.role == 'employe';
 
     return Align(
-      // Employé à droite, support à gauche
       alignment: estEmploye ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
@@ -133,7 +130,6 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
           crossAxisAlignment:
               estEmploye ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            // Nom de l'auteur (uniquement pour le support)
             if (!estEmploye)
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
@@ -146,7 +142,6 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
                   ),
                 ),
               ),
-            // Texte du message
             Text(
               message.texte,
               style: TextStyle(
@@ -155,7 +150,6 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            // Heure d'envoi
             Text(
               '${message.date.hour.toString().padLeft(2, '0')}:'
               '${message.date.minute.toString().padLeft(2, '0')}',
@@ -185,7 +179,6 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
       ),
       body: Column(
         children: [
-          // Contenu scrollable (détails + messages)
           Expanded(
             child: SingleChildScrollView(
               controller: _scrollController,
@@ -231,8 +224,10 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
                   const SizedBox(height: 8),
 
                   // Infos principales
-                  _ligneInfo(Icons.person_outline, 'Signalé par', widget.irritant.nom),
-                  _ligneInfo(Icons.location_on_outlined, 'Lieu', widget.irritant.lieu),
+                  _ligneInfo(Icons.person_outline, 'Signalé par',
+                      widget.irritant.nom),
+                  _ligneInfo(
+                      Icons.location_on_outlined, 'Lieu', widget.irritant.lieu),
                   _ligneInfo(Icons.menu, 'Type', widget.irritant.type),
                   _ligneInfo(
                     Icons.flag_outlined,
@@ -254,10 +249,8 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
                   const SizedBox(height: 8),
 
                   // Description
-                  const Text(
-                    'Description',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
+                  const Text('Description',
+                      style: TextStyle(color: Colors.grey, fontSize: 12)),
                   const SizedBox(height: 6),
                   Text(
                     widget.irritant.description,
@@ -271,7 +264,8 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Photos (${widget.irritant.photosUrls.length})',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      style:
+                          const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                     const SizedBox(height: 8),
                     GridView.builder(
@@ -286,24 +280,28 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
                       itemCount: widget.irritant.photosUrls.length,
                       itemBuilder: (context, index) {
                         return GestureDetector(
-                          onTap: () => _ouvrirPhotoPleinEcran(context, index),
+                          onTap: () =>
+                              _ouvrirPhotoPleinEcran(context, index),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
                               widget.irritant.photosUrls[index],
                               fit: BoxFit.cover,
-                              loadingBuilder: (context, child, loadingProgress) {
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
                                 if (loadingProgress == null) return child;
                                 return Container(
                                   color: Colors.grey.shade100,
                                   child: const Center(
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   ),
                                 );
                               },
-                              errorBuilder: (_, __, ___) => Container(
+                              errorBuilder: (_, e, _) => Container(
                                 color: Colors.grey.shade100,
-                                child: const Icon(Icons.broken_image_outlined,
+                                child: const Icon(
+                                    Icons.broken_image_outlined,
                                     color: Colors.grey),
                               ),
                             ),
@@ -332,12 +330,15 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Liste des messages en temps réel
+                  // Messages en temps réel
                   StreamBuilder<List<Message>>(
-                    stream: _messageService.getMessages(widget.irritant.id!),
+                    stream:
+                        _messageService.getMessages(widget.irritant.id!),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                            child: CircularProgressIndicator());
                       }
 
                       final messages = snapshot.data ?? [];
@@ -345,10 +346,12 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
                       if (messages.isEmpty) {
                         return Center(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 16),
                             child: Text(
                               'Aucun message pour l\'instant',
-                              style: TextStyle(color: Colors.grey.shade400),
+                              style:
+                                  TextStyle(color: Colors.grey.shade400),
                             ),
                           ),
                         );
@@ -367,15 +370,16 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
             ),
           ),
 
-          // Barre d'envoi de message (fixée en bas)
+          // Barre d'envoi de message
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white,
-              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              border:
+                  Border(top: BorderSide(color: Colors.grey.shade200)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
@@ -397,17 +401,17 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 10),
                     ),
-                    maxLines: null, // Permet le multiligne
+                    maxLines: null,
                     textCapitalization: TextCapitalization.sentences,
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Bouton envoyer
                 _envoi
                     ? const SizedBox(
                         width: 40,
                         height: 40,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child:
+                            CircularProgressIndicator(strokeWidth: 2),
                       )
                     : IconButton(
                         onPressed: _envoyerMessage,
@@ -437,7 +441,8 @@ class _IrritantDetailScreenState extends State<IrritantDetailScreen> {
           ),
           body: Center(
             child: InteractiveViewer(
-              child: Image.network(widget.irritant.photosUrls[index]),
+              child:
+                  Image.network(widget.irritant.photosUrls[index]),
             ),
           ),
         ),
