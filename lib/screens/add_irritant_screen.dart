@@ -4,6 +4,8 @@ import '../models/irritant.dart';
 import '../models/app_user.dart';
 import '../services/irritant_service.dart';
 import '../services/photo_service.dart';
+import '../services/auth_service.dart';
+import '../services/referentiel_service.dart';
 
 class AddIrritantScreen extends StatefulWidget {
   final AppUser currentUser;
@@ -18,6 +20,7 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
   final _formKey = GlobalKey<FormState>();
   final _irritantService = IrritantService();
   final _photoService = PhotoService();
+  final _referentielService = ReferentielService();
 
   final _titreController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -25,17 +28,35 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
   bool _anonyme = false;
   String? _lieu;
   String? _type;
-  double _priorite = 5; // Valeur entre 0 et 10
+  double _priorite = 5;
   List<File> _photos = [];
   bool _chargement = false;
 
-  final List<String> _lieux = [
-    'Petite salle de réunion', 'Grande salle de réunion', 'Zone A', 'Zone B', 'Zone C',
-    'Toilettes', 'Couloir', 'Entrée', 'Autre',
-  ];
-  final List<String> _types = [
-    'Équipement', 'Climatisation', 'Bruit', 'Éclairage', 'Propreté', 'Autre',
-  ];
+  // Listes chargées depuis Firebase
+  List<String> _lieux = [];
+  List<String> _types = [];
+  bool _chargementReferentiel = true; // Loader pendant le chargement
+
+  @override
+  void initState() {
+    super.initState();
+    _chargerReferentiels();
+  }
+
+  // Charge les lieux et types depuis Firebase au démarrage
+  Future<void> _chargerReferentiels() async {
+    try {
+      final lieux = await _referentielService.getLieux();
+      final types = await _referentielService.getTypes();
+      setState(() {
+        _lieux = lieux;
+        _types = types;
+        _chargementReferentiel = false;
+      });
+    } catch (e) {
+      setState(() => _chargementReferentiel = false);
+    }
+  }
 
   void _afficherChoixPhoto() {
     showModalBottomSheet(
@@ -83,7 +104,7 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
       _anonyme = false;
       _lieu = null;
       _type = null;
-      _priorite = 5; // Remet la valeur par défaut
+      _priorite = 5;
       _photos = [];
     });
     _titreController.clear();
@@ -102,7 +123,7 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
       lieu: _lieu!,
       type: _type!,
       description: _descriptionController.text.trim(),
-      priorite: _priorite.round().toString(), // Convertit le double en String
+      priorite: _priorite.round().toString(),
     );
 
     await _irritantService.ajouterIrritant(irritant, photos: _photos);
@@ -126,257 +147,287 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      child: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('IrritantsTracker'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async => await AuthService().deconnecter(),
+          ),
+        ],
+      ),
+      // Affiche un loader pendant le chargement des référentiels
+      body: _chargementReferentiel
+          ? const Center(child: CircularProgressIndicator())
+          : Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
 
-            // Nom (prérempli, non modifiable) + case anonyme
-            Row(
-              children: [
-                Icon(
-                  _anonyme ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(4),
-                      color: Colors.grey.shade100,
-                    ),
-                    child: Text(
-                      _anonyme ? 'Anonyme' : widget.currentUser.nom,
-                      style: TextStyle(
-                        color: _anonyme ? Colors.grey : Colors.black87,
+                  // Nom (prérempli) + case anonyme
+                  Row(
+                    children: [
+                      Icon(
+                        _anonyme ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.grey.shade100,
+                          ),
+                          child: Text(
+                            _anonyme ? 'Anonyme' : widget.currentUser.nom,
+                            style: TextStyle(
+                              color: _anonyme ? Colors.grey : Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Checkbox(
+                        value: _anonyme,
+                        onChanged: (val) => setState(() => _anonyme = val!),
+                      ),
+                    ],
                   ),
-                ),
-                Checkbox(
-                  value: _anonyme,
-                  onChanged: (val) => setState(() => _anonyme = val!),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-            // Titre
-            Row(
-              children: [
-                const Icon(Icons.label_outline, color: Colors.grey),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _titreController,
-                    decoration: const InputDecoration(
-                      hintText: 'Titre',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) =>
-                        value == null || value.isEmpty ? 'Titre requis' : null,
+                  // Titre
+                  Row(
+                    children: [
+                      const Icon(Icons.label_outline, color: Colors.grey),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _titreController,
+                          decoration: const InputDecoration(
+                            hintText: 'Titre',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Titre requis'
+                              : null,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-            // Lieu
-            Row(
-              children: [
-                const Icon(Icons.location_on, color: Colors.grey),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _lieu,
-                    hint: const Text('Lieu'),
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
-                    items: _lieux
-                        .map((l) => DropdownMenuItem(value: l, child: Text(l)))
-                        .toList(),
-                    onChanged: (val) => setState(() => _lieu = val),
-                    validator: (value) =>
-                        value == null ? 'Sélectionnez un lieu' : null,
+                  // Lieu (chargé depuis Firebase)
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, color: Colors.grey),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _lieu,
+                          hint: const Text('Lieu'),
+                          decoration: const InputDecoration(
+                              border: OutlineInputBorder()),
+                          items: _lieux
+                              .map((l) =>
+                                  DropdownMenuItem(value: l, child: Text(l)))
+                              .toList(),
+                          onChanged: (val) => setState(() => _lieu = val),
+                          validator: (value) =>
+                              value == null ? 'Sélectionnez un lieu' : null,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-            // Type d'anomalie
-            Row(
-              children: [
-                const Icon(Icons.menu, color: Colors.grey),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _type,
-                    hint: const Text("Type d'anomalie"),
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
-                    items: _types
-                        .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                        .toList(),
-                    onChanged: (val) => setState(() => _type = val),
-                    validator: (value) =>
-                        value == null ? 'Sélectionnez un type' : null,
+                  // Type d'anomalie (chargé depuis Firebase)
+                  Row(
+                    children: [
+                      const Icon(Icons.menu, color: Colors.grey),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _type,
+                          hint: const Text("Type d'anomalie"),
+                          decoration: const InputDecoration(
+                              border: OutlineInputBorder()),
+                          items: _types
+                              .map((t) =>
+                                  DropdownMenuItem(value: t, child: Text(t)))
+                              .toList(),
+                          onChanged: (val) => setState(() => _type = val),
+                          validator: (value) =>
+                              value == null ? 'Sélectionnez un type' : null,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-            // Description
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: Icon(Icons.chat_bubble_outline, color: Colors.grey),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _descriptionController,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      hintText: 'Description',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Description requise'
-                        : null,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Priorité (slider de 0 à 10)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Icon(Icons.flag_outlined, color: Colors.grey),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
+                  // Description
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Faible', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                          Text(
-                            _priorite.round().toString(),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const Text('Important', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                        ],
+                      const Padding(
+                        padding: EdgeInsets.only(top: 12),
+                        child:
+                            Icon(Icons.chat_bubble_outline, color: Colors.grey),
                       ),
-                      Slider(
-                        value: _priorite,
-                        min: 0,
-                        max: 10,
-                        divisions: 10,
-                        onChanged: (val) => setState(() => _priorite = val),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _descriptionController,
+                          maxLines: 4,
+                          decoration: const InputDecoration(
+                            hintText: 'Description',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) =>
+                              value == null || value.isEmpty
+                                  ? 'Description requise'
+                                  : null,
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
-            // Bouton ajouter photo
-            Row(
-              children: [
-                const Icon(Icons.image_outlined, color: Colors.grey),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _afficherChoixPhoto,
-                    icon: const Icon(Icons.add_a_photo),
-                    label: Text(_photos.isEmpty
-                        ? 'Ajouter des photos'
-                        : 'Ajouter une photo (${_photos.length} sélectionnée(s))'),
-                  ),
-                ),
-              ],
-            ),
-
-            // Grille d'aperçu des photos
-            if (_photos.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemCount: _photos.length,
-                itemBuilder: (context, index) {
-                  return Stack(
+                  // Priorité (slider de 0 à 10)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          _photos[index],
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
-                      ),
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: GestureDetector(
-                          onTap: () => setState(() => _photos.removeAt(index)),
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.black54,
-                              shape: BoxShape.circle,
+                      const Icon(Icons.flag_outlined, color: Colors.grey),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Faible',
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 12)),
+                                Text(
+                                  _priorite.round().toString(),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const Text('Important',
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 12)),
+                              ],
                             ),
-                            child: const Icon(Icons.close,
-                                color: Colors.white, size: 18),
-                          ),
+                            Slider(
+                              value: _priorite,
+                              min: 0,
+                              max: 10,
+                              divisions: 10,
+                              onChanged: (val) =>
+                                  setState(() => _priorite = val),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  );
-                },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Bouton ajouter photo
+                  Row(
+                    children: [
+                      const Icon(Icons.image_outlined, color: Colors.grey),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _afficherChoixPhoto,
+                          icon: const Icon(Icons.add_a_photo),
+                          label: Text(_photos.isEmpty
+                              ? 'Ajouter des photos'
+                              : 'Ajouter une photo (${_photos.length} sélectionnée(s))'),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Grille d'aperçu des photos
+                  if (_photos.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: _photos.length,
+                      itemBuilder: (context, index) {
+                        return Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                _photos[index],
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                            ),
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: GestureDetector(
+                                onTap: () =>
+                                    setState(() => _photos.removeAt(index)),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close,
+                                      color: Colors.white, size: 18),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+
+                  const SizedBox(height: 24),
+
+                  // Boutons Reset et Submit
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        onPressed: _reinitialiser,
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.grey),
+                      ),
+                      ElevatedButton(
+                        onPressed: _chargement ? null : _soumettre,
+                        child: _chargement
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Submit'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-
-            const SizedBox(height: 24),
-
-            // Boutons Reset et Submit
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  onPressed: _reinitialiser,
-                  icon: const Icon(Icons.delete_outline, color: Colors.grey),
-                ),
-                ElevatedButton(
-                  onPressed: _chargement ? null : _soumettre,
-                  child: _chargement
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Submit'),
-                ),
-              ],
             ),
-          ],
-        ),
-      ),
     );
   }
 }
