@@ -144,7 +144,6 @@ class _AddIrritantScreenState extends State<AddIrritantScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Pas de Scaffold ici, il est géré par le parent
     if (_chargementReferentiel) {
       return const Center(child: CircularProgressIndicator());
     }

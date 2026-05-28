@@ -5,7 +5,7 @@ import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
 import 'models/app_user.dart';
-import 'navigation/main_navigation.dart'; // ← ajoute cet import
+import 'navigation/main_navigation.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

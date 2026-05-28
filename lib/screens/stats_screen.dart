@@ -290,7 +290,7 @@ class _StatsScreenState extends State<StatsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _ouvrirFiltres,
         backgroundColor: _filtres.aDesFiltresActifs
-            ? Colors.deepPurple          // Violet si filtres actifs
+            ? Colors.deepPurple          
             : Colors.white,
         foregroundColor: _filtres.aDesFiltresActifs
             ? Colors.white

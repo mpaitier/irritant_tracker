@@ -66,8 +66,8 @@ class IrritantService {
         .snapshots()
         .map((snap) => snap.docs
             .map((doc) => Irritant.fromMap(
-                  doc.id,                              // ← String en premier
-                  doc.data(),  // ← Map en second
+                  doc.id,                              
+                  doc.data(),  
                 ))
             .toList());
   }

@@ -2,7 +2,7 @@
 class AppUser {
   final String uid;           // ID Firebase Auth
   final String email;
-  final String nom;           // Prénom + Nom
+  final String nom;           
   final String role;          // 'employe' ou 'admin'
 
   AppUser({

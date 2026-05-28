@@ -32,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _emailController.text,
         _passwordController.text,
       );
-      // La redirection est gérée automatiquement par le StreamBuilder dans main.dart
+      
     } catch (e) {
       setState(() => _erreur = e.toString());
     } finally {
